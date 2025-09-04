@@ -3,77 +3,90 @@
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![Pandas](https://img.shields.io/badge/Pandas-2.x-yellow.svg)
 ![Matplotlib](https://img.shields.io/badge/Matplotlib-3.x-green.svg)
-![Plotly](https://img.shields.io/badge/Plotly-Dashboards-lightblue.svg)
-![Status](https://img.shields.io/badge/Stage-Analyst--Ready-brightgreen.svg)
+![Streamlit](https://img.shields.io/badge/Streamlit-App-red.svg)
+![Status](https://img.shields.io/badge/Stage-Live%20Demo-brightgreen.svg)
+![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)
 
-**Business context:** Retailers sit on messy transaction logs. Turning them into **business-ready insights** is the day-one job of BI & Data Analysts.  
-
-This project simulates a full BI workflow end-to-end:  
-- ✅ Cleans raw retail transactions  
-- ✅ Aggregates into **monthly sales by country & category**  
-- ✅ Forecasts next 3 months of revenue with **confidence bands**  
-- ✅ Detects anomalies (outlier months)  
-- ✅ Exports a BI-ready dataset (**CSV + SQLite**) for **Power BI/Tableau**  
-- ✅ Builds a **dashboard (HTML)** and **executive summary report**  
+> **Business context:**  
+Retailers sit on mountains of messy sales transactions. BI teams need to turn these into **clean, actionable insights** for planning, forecasting, and anomaly detection.  
+This project automates that journey — **from raw CSV → insights → BI-ready exports.**
 
 ---
 
-## 📊 Example Outputs
+## 🌐 Live Demo
 
-**1. Forecast chart with confidence bands**  
-<p align="center"><img src="outputs/forecast.png" alt="Revenue Forecast" width="70%"></p>
+👉 [**Try the Retail BI Simulator (Streamlit app)**](https://retail-bi-simulator-ncsinurqpmtty7obwwcwmw.streamlit.app)  
 
-**2. Anomaly detection**  
-👉 [`outputs/bi_exports/anomalies.csv`](./outputs/bi_exports/anomalies.csv)  
+Upload your own CSV (UCI/Kaggle Online Retail schema) or use the demo data to explore.  
 
-**3. Executive report (excerpt)**  
+---
 
-# Retail BI — Executive Summary
+## 📊 Features
 
-* Top country (last 3 months): United Kingdom — revenue £1,140
-* Top category (last 3 months): Notebook — revenue £715
-* Next 3 months forecast (point total): £3,350
-* Anomalies detected: Dec 2010 (spike), Jun 2011 (drop)
+- **Data Cleaning** → raw transactions → cleaned sales by month, country, and category  
+- **Executive Dashboard** → KPIs (latest revenue, top country/category)  
+- **Forecasting** → 3–6 month ARIMA forecast with confidence intervals  
+- **Anomaly Detection** → Z-score method for fraud/returns risk  
+- **BI-Ready Exports** → CSVs + SQLite for Power BI / Tableau  
 
-Implications:
+---
 
-* Investigate anomalies (promo spike? stockout?)
-* Use forecast CI bands for safer planning
+## 🖼️ Screenshots
 
-**4. Interactive dashboard**  
-👉 [bi_dashboard.html](./outputs/bi_dashboard.html) (open locally)  
+### Dashboard KPIs
+<p align="center"><img src="assets/dashboard.png" alt="Retail BI Dashboard" width="80%"></p>
 
-**5. BI-ready exports**  
-- `outputs/bi_exports/fact_sales.csv` — fact table  
-- `outputs/bi_exports/dim_date.csv` — date dimension  
-- `outputs/retail_bi.sqlite` — SQLite DB  
+### Forecast with Confidence Bands
+<p align="center"><img src="assets/forecast.png" alt="Forecast with CI" width="80%"></p>
+
+### Anomalies Tab
+<p align="center"><img src="assets/anomalies.png" alt="Anomaly Detection" width="80%"></p>
+
+### Export Tab
+<p align="center"><img src="assets/exports.png" alt="BI-ready Exports" width="80%"></p>
 
 ---
 
 ## 🚀 How to Run
 
-1. Clone repo & install deps:
-   ```bash
-   git clone https://github.com/Giuseppe552/retail-bi-simulator.git
-   cd retail-bi-simulator
-   pip install -r requirements.txt
-   ````
+**Option 1 — Run online**  
+Use the live demo: [Streamlit app](https://retail-bi-simulator-ncsinurqpmtty7obwwcwmw.streamlit.app)
 
-2. Run with a CSV file (`InvoiceDate, Quantity, UnitPrice, Country, Description`):
+**Option 2 — Run locally**
+```bash
+git clone https://github.com/Giuseppe552/retail-bi-simulator.git
+cd retail-bi-simulator
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+````
 
-   ```bash
-   python3 retail_bi.py data/transactions.csv
-   ```
+Input format (case-insensitive column names):
 
-3. Outputs in `outputs/`:
-
-   * `cleaned_sales.csv` — cleaned + aggregated
-   * `forecast.png` — forecast chart with CI bands
-   * `bi_dashboard.html` — interactive dashboard
-   * `report.txt` — exec summary
-   * `bi_exports/` — BI-ready tables & anomalies
-   * `retail_bi.sqlite` — SQLite DB (load into Power BI/Tableau)
+* `InvoiceDate` or `Date`
+* `Quantity`
+* `UnitPrice` or `Price`
+* Optional: `Country`, `Description` / `StockCode`
 
 ---
+
+## 📈 Why This Matters
+
+* **For retail teams** → plan stock, detect anomalies, and forecast cash flows.
+* **For BI developers** → automate the messy cleaning + pipeline step.
+* **For hiring managers** → demonstrates ability to design an end-to-end BI workflow, not just code snippets.
+
+---
+
+## 🔮 Next Steps
+
+* Add support for **multiple forecast models** (Prophet, LSTM).
+* Deploy BI exports straight to **Power BI Service / Tableau Online**.
+* Build **multi-retailer benchmarking dashboard**.
+
+---
+
+👨‍💻 Built by [Giuseppe552](https://github.com/Giuseppe552) — feedback welcome!
+
+```
 
 
