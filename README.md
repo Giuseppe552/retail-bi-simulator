@@ -31,7 +31,7 @@ Built to mirror a grad BI developer’s real workflow (clean → aggregate → f
 
 ---
 
-[![Open in Streamlit](https://retail-bi-simulator-ncsinurqpmtty7obwwcvnmw.streamlit.app)
+![Open the demo app to try it out in Streamlit](https://retail-bi-simulator-ncsinurqpmtty7obwwcvnmw.streamlit.app)
 
 ---
 
