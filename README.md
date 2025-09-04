@@ -31,6 +31,10 @@ Built to mirror a grad BI developer’s real workflow (clean → aggregate → f
 
 ---
 
+[![Open in Streamlit](https://retail-bi-simulator-ncsinurqpmtty7obwwcvnmw.streamlit.app)
+
+---
+
 ## ✨ What it does
 - **Cleans** messy transactions (handles column aliases, negatives, nulls).
 - **Aggregates** to monthly revenue by **Country** and inferred **Category**.
