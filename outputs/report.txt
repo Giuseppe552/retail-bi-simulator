@@ -1,0 +1,9 @@
+Retail BI — Executive Summary
+================================
+- Top country (last 3 months): United States — revenue £1,000
+- Top category (last 3 months): Laptop — revenue £1,000
+- Next 3 months forecast (point total): £240
+
+Implications:
+- Double down on top categories; monitor tail for stockouts/markdown risk.
+- Use forecast to plan buys and working capital.

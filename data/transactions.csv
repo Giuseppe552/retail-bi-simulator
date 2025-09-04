@@ -1,0 +1,13 @@
+InvoiceDate,Quantity,UnitPrice,Country,Description
+2024-01-05,2,20.0,United Kingdom,Tea Mug
+2024-01-12,1,120.0,Germany,Office Chair
+2024-02-02,3,15.0,United Kingdom,Tea Spoon
+2024-02-16,5,9.0,France,Notebook
+2024-03-04,1,900.0,United States,Laptop
+2024-03-20,2,35.0,United Kingdom,Water Bottle
+2024-04-03,4,12.0,France,Notebook
+2024-04-18,2,220.0,Germany,Desk Lamp
+2024-05-01,3,25.0,United Kingdom,Tea Mug
+2024-06-14,7,11.0,France,Notebook
+2024-07-07,1,1000.0,United States,Laptop
+2024-08-11,2,40.0,Germany,Headphones
