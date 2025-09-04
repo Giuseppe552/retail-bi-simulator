@@ -9,8 +9,9 @@ import plotly.graph_objects as go
 # ---- Import your pipeline helpers (keep these exactly as they exist in retail_bi.py) ----
 from retail_bi import (
     load_transactions, monthly_agg, totals_series,
-    forecast_with_ci, detect_anomalies, export_bi
+    forecast_with_ci, detect_anomalies
 )
+
 
 # ====================== Page & sidebar ======================
 st.set_page_config(page_title="Retail BI Simulator — Forecast & Anomaly Dashboard",
@@ -129,41 +130,26 @@ def safe_load_transactions(src_df: pd.DataFrame) -> pd.DataFrame:
         return df
 
 # ====================== Pipeline ======================
-def to_monthly_series(total_df: pd.DataFrame) -> pd.Series:
-    """Convert totals DataFrame (Month, Revenue) -> float Series with PeriodIndex."""
-    s = pd.Series(total_df["Revenue"].values,
-                  index=pd.PeriodIndex(pd.to_datetime(total_df["Month"]).to_period("M")))
-    s = pd.to_numeric(s, errors="coerce").astype(float)
-    return s.replace([np.inf, -np.inf], np.nan).dropna()
-
 def run_pipeline(df_raw: pd.DataFrame, steps: int, ci_pct: int, z: float):
+    # 1) Load/clean
     cleaned = safe_load_transactions(df_raw)
 
+    # 2) Aggregations
     monthly = monthly_agg(cleaned)
-    total   = totals_series(monthly)            # DataFrame with Month, Revenue
-    s       = to_monthly_series(total)          # 1-D Series for modeling
+    total   = totals_series(monthly)        # <- Series (MS), not DataFrame
 
-    # NOTE: forecast_with_ci signature varies; we avoid the 'horizon' kw.
-    # Use positional or 'steps=' which is common.
-    try:
-        fc = forecast_with_ci(s, steps=steps, ci=ci_pct/100.0)
-    except TypeError:
-        # Fallback to positional (series, steps, ci)
-        fc = forecast_with_ci(s, steps, ci_pct/100.0)
+    # 3) Forecast + CI (use steps only; CI is fixed at 80% in library)
+    fc, residuals = forecast_with_ci(total, steps=steps)
 
-    # anomalies: use the correct kwarg 'z', not 'z_thresh'
-    anomalies = detect_anomalies(s, z=z)
+    # 4) Anomalies on in-sample residuals (correct kw: z_thresh)
+    anomalies = detect_anomalies(residuals, z_thresh=z)
 
-    # split views for dashboard
+    # 5) Splits for dashboard tables
     by_country  = cleaned.groupby(["Country","Month"], as_index=False)["Revenue"].sum()
     by_category = cleaned.groupby(["Category","Month"], as_index=False)["Revenue"].sum()
 
     return cleaned, monthly, total, fc, anomalies, by_country, by_category
 
-with st.spinner("Analyzing…"):
-    cleaned, monthly, total, fc, anomalies, by_country, by_category = run_pipeline(
-        raw_df, steps=horizon, ci_pct=ci_level, z=z_thresh
-    )
 
 # ====================== Tabs ======================
 tab_dash, tab_fc, tab_anom, tab_export = st.tabs(["📊 Dashboard", "📈 Forecast", "⚠️ Anomalies", "📦 Exports"])
@@ -195,22 +181,22 @@ with tab_dash:
     st.dataframe(cleaned.sort_values("Month", ascending=False).head(200), width="stretch")
 
 with tab_fc:
-    # Plot actuals & forecast with CI band
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=pd.to_datetime(total["Month"]), y=total["Revenue"], mode="lines", name="Actual"))
-    # Create forecast x-axis from last month forward
-    last_month = pd.Period(pd.to_datetime(total["Month"].max()), freq="M")
-    future_x = pd.period_range(last_month+1, periods=len(fc), freq="M").to_timestamp()
-    fig.add_trace(go.Scatter(x=future_x, y=fc["yhat"], mode="lines", name="Forecast"))
-    # CI band
+    # Actuals from the Series
+    fig.add_trace(go.Scatter(x=total.index, y=total.values, mode="lines", name="Actual"))
+
+    # Forecast uses its own DateTimeIndex
+    fig.add_trace(go.Scatter(x=fc.index, y=fc["yhat"], mode="lines", name="Forecast"))
     fig.add_trace(go.Scatter(
-        x=list(future_x)+list(future_x[::-1]),
+        x=list(fc.index)+list(fc.index[::-1]),
         y=list(fc["upper"])+list(fc["lower"][::-1]),
-        fill="toself", name=f"{ci_level}% CI", mode="lines"
+        fill="toself", name=f"{ci_level}% CI", mode="lines", opacity=0.2
     ))
     fig.update_layout(margin=dict(l=0,r=0,t=10,b=0), height=420)
     st.plotly_chart(fig, width="stretch")
-    st.dataframe(fc, width="stretch")
+
+    st.dataframe(fc.reset_index().rename(columns={"index":"Month"}), width="stretch")
+
 
 with tab_anom:
     if len(anomalies):
@@ -219,20 +205,28 @@ with tab_anom:
         st.success("No anomalies detected with the current threshold.")
 
 with tab_export:
-    # Build BI exports in-memory
-    out = export_bi(cleaned, monthly, total, fc, anomalies)
-    st.download_button("Download cleaned transactions (CSV)", out["transactions_csv"], "transactions_cleaned.csv")
-    st.download_button("Download cleaned sales (CSV)", out["sales_csv"], "cleaned_sales.csv")
-    st.download_button("Download anomalies (CSV)", out["anom_csv"], "anomalies.csv")
-    st.download_button("Download forecast + CI (CSV)", out["forecast_csv"], "forecast_ci.csv")
+    # Build CSV bytes in-memory
+    transactions_csv = cleaned.to_csv(index=False).encode("utf-8")
+    sales_csv = monthly.rename(columns={"Month":"Date"}).to_csv(index=False).encode("utf-8")
+    anom_csv = anomalies.to_csv(index=False).encode("utf-8")
+    forecast_csv = (
+        fc.reset_index()
+          .rename(columns={"index":"Month"})
+          .to_csv(index=False)
+          .encode("utf-8")
+    )
+
+    st.download_button("Download cleaned transactions (CSV)", transactions_csv, "transactions_cleaned.csv")
+    st.download_button("Download cleaned sales (CSV)", sales_csv, "cleaned_sales.csv")
+    st.download_button("Download anomalies (CSV)", anom_csv, "anomalies.csv")
+    st.download_button("Download forecast + CI (CSV)", forecast_csv, "forecast_ci.csv")
 
     # ZIP bundle
     zip_bytes = io.BytesIO()
     with zipfile.ZipFile(zip_bytes, "w", zipfile.ZIP_DEFLATED) as z:
-        z.writestr("transactions_cleaned.csv", out["transactions_csv"])
-        z.writestr("cleaned_sales.csv", out["sales_csv"])
-        z.writestr("anomalies.csv", out["anom_csv"])
-        z.writestr("forecast_ci.csv", out["forecast_csv"])
+        z.writestr("transactions_cleaned.csv", transactions_csv)
+        z.writestr("cleaned_sales.csv", sales_csv)
+        z.writestr("anomalies.csv", anom_csv)
+        z.writestr("forecast_ci.csv", forecast_csv)
     st.download_button("Download full results pack (ZIP)", zip_bytes.getvalue(), "retail_bi_outputs.zip")
 
-st.caption("Built by Giuseppe — BI-ready outputs for Power BI/Tableau.")
