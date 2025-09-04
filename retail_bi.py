@@ -11,50 +11,61 @@ import plotly.graph_objects as go
 
 # ---------- Loading & cleaning ----------
 
-def load_transactions(path: Path) -> pd.DataFrame:
-    df = pd.read_csv(path, low_memory=False, encoding="utf-8")
-    # Map likely column aliases (supports Online Retail / Online Retail II)
-    cols = {c.lower(): c for c in df.columns}
-    date_col    = cols.get("invoicedate") or cols.get("invoice_date") or cols.get("date")
-    qty_col     = cols.get("quantity") or cols.get("qty")
-    price_col   = cols.get("unitprice") or cols.get("unit_price") or cols.get("price")
-    country_col = cols.get("country")
-    desc_col    = cols.get("description") or cols.get("stockcode") or cols.get("item") or cols.get("stock_code")
+def load_transactions(path_or_df, low_memory=False):
+    """
+    Accepts a path, file-like object, or a pandas DataFrame.
+    Returns a normalized transactions DataFrame with:
+      InvoiceDate, Quantity, UnitPrice, Country, Description, Category, Revenue, Month
+    """
+    import pandas as pd
+    # 1) Load
+    if isinstance(path_or_df, pd.DataFrame):
+        df = path_or_df.copy()
+    else:
+        df = pd.read_csv(path_or_df, low_memory=low_memory, encoding="utf-8")
 
-    req = [date_col, qty_col, price_col]
-    if any(x is None for x in req):
-        raise RuntimeError("CSV must include InvoiceDate/Date, Quantity, UnitPrice/Price")
+    # 2) Normalise column names (case-insensitive)
+    cols = {c.lower().strip(): c for c in df.columns}
+    def pick(*options):
+        for o in options:
+            if o.lower() in cols: return cols[o.lower()]
+        return None
 
-    # Standard names
-    df = df.rename(columns={
-        date_col: "InvoiceDate",
-        qty_col: "Quantity",
-        price_col: "UnitPrice",
-        (country_col or "Country"): "Country",
-        (desc_col or "Item"): "Item",
-    })
+    date_col   = pick("InvoiceDate","Date")
+    qty_col    = pick("Quantity","Qty")
+    price_col  = pick("UnitPrice","Price","Unit Price")
+    country_c  = pick("Country","Market")
+    desc_col   = pick("Description","StockCode","Item","Product","Category")
 
-    # Types + filters
+    rename = {}
+    if date_col:   rename[date_col]  = "InvoiceDate"
+    if qty_col:    rename[qty_col]   = "Quantity"
+    if price_col:  rename[price_col] = "UnitPrice"
+    if country_c:  rename[country_c] = "Country"
+    if desc_col:   rename[desc_col]  = "Description"
+    if rename: df = df.rename(columns=rename)
+
+    # 3) Types & cleaning
     df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"], errors="coerce")
     df["Quantity"]    = pd.to_numeric(df["Quantity"], errors="coerce")
     df["UnitPrice"]   = pd.to_numeric(df["UnitPrice"], errors="coerce")
+    if "Country" not in df:     df["Country"] = "Unknown"
+    if "Description" not in df: df["Description"] = "Misc"
 
-    df = df.dropna(subset=["InvoiceDate", "Quantity", "UnitPrice"])
-    df = df[(df["Quantity"] > 0) & (df["UnitPrice"] > 0)]
+    df = df.dropna(subset=["InvoiceDate","Quantity","UnitPrice"])
+    df = df[df["Quantity"]>0]
+    df = df[df["UnitPrice"]>0]
 
+    # 4) Derive category if missing
+    if "Category" not in df.columns:
+        cat = df["Description"].astype(str).str.extract(r"([A-Za-z ]+)")[0].str.strip()
+        df["Category"] = cat.replace("", "Other")
+
+    # 5) Derived fields
     df["Revenue"] = df["Quantity"] * df["UnitPrice"]
+    df["Month"]   = df["InvoiceDate"].dt.to_period("M").dt.to_timestamp()
 
-    # Simple category (first token(s) of description) – good enough for demo
-    if "Item" in df.columns:
-        df["Category"] = (df["Item"].astype(str)
-                          .str.extract(r"^([A-Za-z][A-Za-z ]{2,20})", expand=False)
-                          .fillna("Misc").str.strip())
-    else:
-        df["Category"] = "Misc"
-
-    df["Country"] = df.get("Country", "Unknown").astype(str).str.title().str.strip()
     return df
-
 def monthly_agg(df: pd.DataFrame) -> pd.DataFrame:
     df["Month"] = df["InvoiceDate"].dt.to_period("M").dt.to_timestamp()
     grouped = (df.groupby(["Month", "Country", "Category"], as_index=False)["Revenue"]
