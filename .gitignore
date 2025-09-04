@@ -1,7 +1,8 @@
-.venv/
-outputs/
-.streamlit_upload.csv
-*.sqlite
 __pycache__/
 *.pyc
+.venv/
+outputs/
+*.sqlite
+*.db
+data/advanced_transactions.csv
 .DS_Store
