@@ -40,8 +40,6 @@ Implications:
 * Investigate anomalies (promo spike? stockout?)
 * Use forecast CI bands for safer planning
 
-````
-
 **4. Interactive dashboard**  
 👉 [bi_dashboard.html](./outputs/bi_dashboard.html) (open locally)  
 
