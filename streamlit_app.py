@@ -6,6 +6,7 @@ import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
 
+from data.make_advanced_demo import build_demo_df
 from retail_bi import (
     load_transactions, monthly_agg, totals_series,
     forecast_with_ci, detect_anomalies, export_bi, write_exec_report
