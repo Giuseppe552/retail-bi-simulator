@@ -80,43 +80,50 @@ def totals_series(monthly: pd.DataFrame) -> pd.Series:
 
 # ---------- Forecast + CI + anomalies ----------
 
-def forecast_with_ci(total: pd.Series, steps=3):
-    # sanitize input series to float
-    s = pd.to_numeric(series, errors="coerce").astype(float)
+def forecast_with_ci(total: pd.Series, steps: int = 3):
+    """
+    Input: monthly revenue Series with a monthly DateTimeIndex (MS).
+    Output: (forecast_df, residuals)
+      - forecast_df: DataFrame with index as future months and columns yhat, lower, upper
+      - residuals: in-sample residuals (Series) for anomaly detection
+    """
+    # clean to float Series
+    s = pd.to_numeric(total, errors="coerce").astype(float)
     s = s.replace([np.inf, -np.inf], np.nan).dropna()
-    if s.empty or len(s) < 3:
-        last = float(s.tail(1).iloc[0]) if len(s) else 0.0
-        idx = (pd.period_range(s.index[-1].asfreq("M").start_time, periods=horizon, freq="M") if len(s) else pd.period_range("2025-01", periods=horizon, freq="M"))
-        return pd.DataFrame({"yhat":[last]*horizon, "lower":[last]*horizon, "upper":[last]*horizon}, index=idx)
-    """Return df with yhat, lower, upper and residuals for training fit."""
-    if len(total) < 8:
-        idx = pd.date_range(total.index[-1] + pd.offsets.MonthBegin(), periods=steps, freq="MS")
-        base = float(total.iloc[-1])
-        fc = pd.DataFrame({"yhat": [base]*steps, "lower": [base]*steps, "upper": [base]*steps}, index=idx)
-        residuals = total - total.rolling(3, min_periods=1).mean()
+
+    # Edge cases
+    if s.empty:
+        idx = pd.date_range(pd.Timestamp.today().to_period("M").to_timestamp(), periods=steps, freq="MS")
+        fc = pd.DataFrame({"yhat":[0.0]*steps, "lower":[0.0]*steps, "upper":[0.0]*steps}, index=idx)
+        residuals = s
         return fc, residuals
 
-    model = SARIMAX(total, order=(1,1,1), seasonal_order=(0,1,1,12),
+    if len(s) < 8:
+        idx = pd.date_range(s.index[-1] + pd.offsets.MonthBegin(), periods=steps, freq="MS")
+        base = float(s.iloc[-1])
+        fc = pd.DataFrame({"yhat":[base]*steps, "lower":[base]*steps, "upper":[base]*steps}, index=idx)
+        residuals = s - s.rolling(3, min_periods=1).mean()
+        return fc, residuals
+
+    # SARIMAX forecast + CI
+    model = SARIMAX(s, order=(1,1,1), seasonal_order=(0,1,1,12),
                     enforce_stationarity=False, enforce_invertibility=False)
     res = model.fit(disp=False)
-    # in-sample residuals for anomaly detection
     residuals = res.resid
+
     fc_res = res.get_forecast(steps=steps)
     pred = fc_res.predicted_mean.clip(lower=0)
-    ci   = fc_res.conf_int(alpha=0.20)  # 80% CI looks good in BI (tighter band)
+    ci   = fc_res.conf_int(alpha=0.20)  # 80% CI
     ci.columns = ["lower", "upper"]
-    out = pd.DataFrame({"yhat": pred, "lower": ci["lower"].clip(lower=0), "upper": ci["upper"].clip(lower=0)})
+
+    out = pd.DataFrame({
+        "yhat":  pred,
+        "lower": ci["lower"].clip(lower=0),
+        "upper": ci["upper"].clip(lower=0),
+    })
     return out, residuals
 
-def detect_anomalies(residuals: pd.Series, z_thresh=3.0) -> pd.DataFrame:
-    z = (residuals - residuals.mean()) / residuals.std(ddof=0)
-    flags = z.abs() >= z_thresh
-    return pd.DataFrame({
-        "Month": residuals.index,
-        "Residual": residuals.values,
-        "Z": z.values,
-        "Anomaly": flags.values
-    })
+
 
 # ---------- Visuals ----------
 
