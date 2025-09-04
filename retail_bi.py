@@ -124,6 +124,29 @@ def forecast_with_ci(total: pd.Series, steps: int = 3):
     return out, residuals
 
 
+def detect_anomalies(residuals: pd.Series, z_thresh: float = 3.0) -> pd.DataFrame:
+    """
+    Flag anomaly months using z-scores on in-sample residuals from the forecaster.
+    Returns a DataFrame with columns: Month, Residual, Z, Anomaly (bool).
+    """
+    s = pd.to_numeric(residuals, errors="coerce").astype(float)
+    s = s.replace([np.inf, -np.inf], np.nan).dropna()
+    if s.empty:
+        return pd.DataFrame(columns=["Month", "Residual", "Z", "Anomaly"])
+
+    std = float(s.std(ddof=1))
+    if std == 0 or np.isnan(std):
+        z = pd.Series(0.0, index=s.index)
+    else:
+        z = (s - float(s.mean())) / std
+
+    out = pd.DataFrame({
+        "Month": s.index,
+        "Residual": s.values,
+        "Z": z.values,
+    })
+    out["Anomaly"] = out["Z"].abs() >= float(z_thresh)
+    return out
 
 # ---------- Visuals ----------
 
