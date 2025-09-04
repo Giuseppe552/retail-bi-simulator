@@ -80,7 +80,7 @@ def totals_series(monthly: pd.DataFrame) -> pd.Series:
 
 # ---------- Forecast + CI + anomalies ----------
 
-def forecast_with_ci(total, steps, ci=ci_level/100.0):
+def forecast_with_ci(total, steps, ci=3):
     """
     Input: monthly revenue Series with a monthly DateTimeIndex (MS).
     Output: (forecast_df, residuals)
@@ -272,7 +272,7 @@ def main():
     monthly.to_csv(outdir / "cleaned_sales.csv", index=False)
 
     total = totals_series(monthly)
-    fc, residuals = forecast_with_ci(total, steps, ci=ci_level/100.0)
+    fc, residuals = forecast_with_ci(total, steps, ci=3)
     anomalies = detect_anomalies(residuals)
 
     plot_forecast(total, fc, outdir / "forecast.png")
