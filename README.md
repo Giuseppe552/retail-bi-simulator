@@ -49,7 +49,7 @@ Implications:
    git clone https://github.com/Giuseppe552/retail-bi-simulator.git
    cd retail-bi-simulator
    pip install -r requirements.txt
-````
+   ````
 
 2. Run with a CSV file (`InvoiceDate, Quantity, UnitPrice, Country, Description`)
 
