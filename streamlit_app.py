@@ -6,6 +6,19 @@ import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
 
+@st.cache_data(show_spinner=False)
+def get_advanced_demo(n_rows: int = 20000):
+    # Import here to avoid circular import at module load
+    from data.make_advanced_demo import main as make_demo
+    df = make_demo(return_df=True)
+    # Cap to n_rows for speed; keep chronological order
+    if len(df) > n_rows:
+        df = (df.sample(n_rows, random_state=42)
+                .sort_values(by=[c for c in df.columns if str(c).lower() in ("invoicedate","date")][0])
+                .reset_index(drop=True))
+    return df
+
+
 # --- Local modules
 from data.make_advanced_demo import build_demo_df   # advanced in-memory demo
 
