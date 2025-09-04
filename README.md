@@ -27,7 +27,6 @@ This project simulates a full BI workflow end-to-end:
 👉 [`outputs/bi_exports/anomalies.csv`](./outputs/bi_exports/anomalies.csv)  
 
 **3. Executive report (excerpt)**  
-```
 
 # Retail BI — Executive Summary
 
