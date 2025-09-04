@@ -160,6 +160,11 @@ def run_pipeline(df_raw: pd.DataFrame, steps: int, ci_pct: int, z: float):
 # ====================== Tabs ======================
 tab_dash, tab_fc, tab_anom, tab_export = st.tabs(["📊 Dashboard", "📈 Forecast", "⚠️ Anomalies", "📦 Exports"])
 
+# Run pipeline to process data
+cleaned, monthly, total, fc, anomalies, by_country, by_category = run_pipeline(
+    raw_df, horizon, ci_level, z_thresh
+)
+
 with tab_dash:
     latest_month = monthly["Month"].max()
     last_3m = monthly[monthly["Month"] >= (latest_month - pd.offsets.MonthBegin(2))]
