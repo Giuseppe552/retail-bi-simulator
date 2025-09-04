@@ -5,14 +5,27 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
-from data.make_advanced_demo import main as make_advanced, build_demo_df
 
 from retail_bi import (
-from retail_bi import clean_and_forecast as run_pipeline
     load_transactions, monthly_agg, totals_series,
     forecast_with_ci, detect_anomalies, export_bi, write_exec_report
 )
 
+def run_pipeline(raw_df, horizon: int, ci_level: int, z_thresh: float):
+    """Orchestrates the pipeline for the Streamlit app."""
+    cleaned = load_transactions(raw_df)
+    monthly = monthly_agg(cleaned)
+    total = totals_series(monthly)
+    fc = forecast_with_ci(total, horizon=horizon, ci=ci_level)
+    anomalies = detect_anomalies(total, z=z_thresh)
+
+    # Top views
+    by_country = (monthly.groupby("Country", as_index=False)["Revenue"]
+                         .sum().sort_values("Revenue", ascending=False).head(10))
+    cat_col = "Category" if "Category" in monthly.columns else "Description"
+    by_category = (monthly.groupby(cat_col, as_index=False)["Revenue"]
+                          .sum().sort_values("Revenue", ascending=False).head(10))
+    return cleaned, monthly, total, fc, anomalies, by_country, by_category
 st.set_page_config(
     page_title="Retail BI Simulator — Forecast & Anomaly Dashboard",
     page_icon="🛒",
