@@ -1,1 +1,7 @@
-outputs/retail_bi.sqlite
+.venv/
+outputs/
+.streamlit_upload.csv
+*.sqlite
+__pycache__/
+*.pyc
+.DS_Store
