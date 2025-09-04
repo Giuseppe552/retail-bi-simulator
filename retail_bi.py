@@ -81,6 +81,13 @@ def totals_series(monthly: pd.DataFrame) -> pd.Series:
 # ---------- Forecast + CI + anomalies ----------
 
 def forecast_with_ci(total: pd.Series, steps=3):
+    # sanitize input series to float
+    s = pd.to_numeric(series, errors="coerce").astype(float)
+    s = s.replace([np.inf, -np.inf], np.nan).dropna()
+    if s.empty or len(s) < 3:
+        last = float(s.tail(1).iloc[0]) if len(s) else 0.0
+        idx = (pd.period_range(s.index[-1].asfreq("M").start_time, periods=horizon, freq="M") if len(s) else pd.period_range("2025-01", periods=horizon, freq="M"))
+        return pd.DataFrame({"yhat":[last]*horizon, "lower":[last]*horizon, "upper":[last]*horizon}, index=idx)
     """Return df with yhat, lower, upper and residuals for training fit."""
     if len(total) < 8:
         idx = pd.date_range(total.index[-1] + pd.offsets.MonthBegin(), periods=steps, freq="MS")
