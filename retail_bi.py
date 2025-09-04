@@ -266,3 +266,20 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def export_bi_in_memory(cleaned: pd.DataFrame,
+                        monthly: pd.DataFrame,
+                        total: pd.Series,
+                        fc: pd.DataFrame,
+                        anomalies: pd.DataFrame) -> dict[str, bytes]:
+    tx = cleaned.to_csv(index=False).encode("utf-8")
+    sales = monthly.rename(columns={"Month":"Date"}).to_csv(index=False).encode("utf-8")
+    anom = anomalies.to_csv(index=False).encode("utf-8")
+    fcsv = fc.reset_index().rename(columns={"index":"Month"}).to_csv(index=False).encode("utf-8")
+    return {
+        "transactions_csv": tx,
+        "sales_csv": sales,
+        "anom_csv": anom,
+        "forecast_csv": fcsv,
+    }
+
