@@ -148,7 +148,7 @@ def run_pipeline(df_raw: pd.DataFrame, steps: int, ci_pct: int, z: float):
     by_country  = cleaned.groupby(["Country","Month"], as_index=False)["Revenue"].sum()
     by_category = cleaned.groupby(["Category","Month"], as_index=False)["Revenue"].sum()
 
-        return cleaned, monthly, total, fc, anomalies, by_country, by_category
+    return cleaned, monthly, total, fc, anomalies, by_country, by_category
 
     # Run the pipeline with the chosen input and sidebar settings
     cleaned, monthly, total, fc, anomalies, by_country, by_category = run_pipeline(
