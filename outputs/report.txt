@@ -1,9 +1,0 @@
-Retail BI — Executive Summary
-================================
-- Top country (last 3 months): United States — £1,000
-- Top category (last 3 months): Laptop — £1,000
-- Next 3 months forecast: £240 (point total), CI shown on chart
-
-Implications:
-- Prioritise top markets/categories; investigate anomaly months for promo/stockout effects.
-- Use forecast & CI to set buy plans and cash buffers; alert if actuals breach CI band.
