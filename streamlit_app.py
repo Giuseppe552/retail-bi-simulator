@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
+from data.make_advanced_demo import main as make_advanced, build_demo_df
 
 from retail_bi import (
     load_transactions, monthly_agg, totals_series,
@@ -53,59 +54,21 @@ TEMPLATE = """InvoiceDate,Quantity,UnitPrice,Country,Description
 """
 st.download_button("Download CSV template", TEMPLATE.encode("utf-8"), "transactions_template.csv")
 
-uploaded = st.file_uploader("Step 1 — Upload CSV", type=["csv"])
+# === INPUT SELECTION START ===
 use_demo = st.checkbox("Use tiny demo sample", value=False)
 use_advanced_demo = st.checkbox("Use advanced demo (2 years, promos, anomalies)", value=True)
 
-def tiny_demo_df():
-    return pd.read_csv(io.StringIO(TEMPLATE))
-
-def cache_key(df: pd.DataFrame, horizon: int, ci: int, z: float) -> str:
-    h = hashlib.sha256()
-    h.update(pd.util.hash_pandas_object(df, index=True).values.tobytes())
-    h.update(str(horizon).encode()); h.update(str(ci).encode()); h.update(str(z).encode())
-    return h.hexdigest()
-
-@st.cache_data(show_spinner=False)
-def run_pipeline(df_raw: pd.DataFrame, horizon: int, ci_level: int, z_thresh: float):
-    tmp = Path(".streamlit_upload.csv")
-    df_raw.to_csv(tmp, index=False)
-    cleaned = load_transactions(tmp)
-    try: tmp.unlink(missing_ok=True)
-    except Exception: pass
-
-    monthly = monthly_agg(cleaned)
-    total   = totals_series(monthly)
-
-    fc, residuals = forecast_with_ci(total, steps=horizon)  # base is 80% CI
-    widen = {80:1.00, 85:1.15, 90:1.35, 95:1.80}.get(ci_level, 1.00)
-    if widen != 1.00 and not fc.empty:
-        base_mid = fc["yhat"]
-        fc["lower"] = (base_mid - (base_mid - fc["lower"])*widen).clip(lower=0)
-        fc["upper"] = base_mid + (fc["upper"] - base_mid)*widen
-
-    anomalies = detect_anomalies(residuals, z_thresh=z_thresh)
-
-    latest = monthly["Month"].max()
-    last3  = monthly[monthly["Month"] >= (latest - pd.offsets.MonthBegin(2))]
-    by_country  = last3.groupby("Country")["Revenue"].sum().sort_values(ascending=False)
-    by_category = last3.groupby("Category")["Revenue"].sum().sort_values(ascending=False)
-
-    return cleaned, monthly, total, fc, anomalies, by_country, by_category
-
-# Choose input
-raw = None
-adv_path = Path("data/advanced_transactions.csv")
-if use_advanced_demo and adv_path.exists():
-    raw = pd.read_csv(adv_path)
+if use_advanced_demo:
+    raw = build_demo_df()  # generate in-memory
 elif use_demo:
-    raw = tiny_demo_df()
+    raw = demo_df()
 elif uploaded:
     raw = pd.read_csv(uploaded)
-
-if raw is None:
-    st.info("Upload a CSV, or tick one of the demo options to continue.")
+else:
+    st.info("Upload a CSV (or tick a demo) to continue.")
     st.stop()
+# === INPUT SELECTION END ===
+
 
 # Run
 with st.spinner("Analyzing…"):
