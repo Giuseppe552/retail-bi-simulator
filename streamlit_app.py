@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 from data.make_advanced_demo import main as make_advanced, build_demo_df
 
 from retail_bi import (
+from retail_bi import clean_and_forecast as run_pipeline
     load_transactions, monthly_agg, totals_series,
     forecast_with_ci, detect_anomalies, export_bi, write_exec_report
 )
